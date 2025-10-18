@@ -1,0 +1,36 @@
+milkcargo-features = ["trim-paths"]
+
+[package]
+name = "YouTubeTLDR"
+version = "1.5.0"
+edition = "2024"
+readme = "README.md"
+license = "MIT"
+authors = ["Aditya Patil <adityaspatil1111@gmail.com>"] 
+
+[dependencies]
+minreq = { version = "2.14", features = ["json-using-serde", "proxy"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+crossbeam-channel = "0.5"
+
+[build-dependencies]
+minifier = "0.3"
+flate2 = "1.1"
+
+[features]
+default = ["native-tls"]
+native-tls = ["minreq/https-native"]
+rustls-tls = ["minreq/https-rustls"]
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
+trim-paths = "all"
+
+[profile.dev]
+opt-level = 1
+incremental = true
