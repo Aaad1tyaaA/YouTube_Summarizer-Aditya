@@ -37,7 +37,43 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
         sidebarToggleBtn.addEventListener("click", toggleSidebar);
+        document.getElementById("scrim").addEventListener("click", toggleSidebar);
         downloadPdfBtn.addEventListener("click", downloadChatAsPDF);
+        chatInput.addEventListener("input", autoGrow);
+        document.querySelectorAll("#suggestions button").forEach(btn => btn.addEventListener("click", () => {
+            chatInput.value = btn.textContent;
+            sendChatMessage();
+        }));
+        // Composer state follows the input's disabled flag, wherever the code toggles it
+        new MutationObserver(() => {
+            suggestions.classList.toggle("hidden", chatInput.disabled || chatHistory.querySelector(".you") !== null);
+        }).observe(chatInput, { attributes: true, attributeFilter: ["disabled"] });
+    }
+
+    const suggestions = document.getElementById("suggestions");
+
+    function autoGrow() {
+        chatInput.style.height = "auto";
+        chatInput.style.height = Math.min(chatInput.scrollHeight, 160) + "px";
+    }
+
+    function showVideoInfo(videoId) {
+        fetch(`https://www.youtube.com/oembed?format=json&url=${encodeURIComponent("https://www.youtube.com/watch?v=" + videoId)}`)
+            .then(r => r.ok ? r.json() : null)
+            .then(info => {
+                if (!info) return;
+                document.getElementById("video-title").textContent = info.title;
+                document.getElementById("video-channel").textContent = info.author_name;
+                document.title = `${info.title} · YouTube TLDR`;
+                // Name the chat after the video instead of "New Chat"
+                const chat = chatHistoryStorage.find(c => c.id === currentChatId);
+                if (chat && (chat.title === "New Chat" || chat.title.endsWith("..."))) {
+                    chat.title = info.title;
+                    localStorage.setItem("chatHistory", JSON.stringify(chatHistoryStorage));
+                    loadHistoryFromStorage();
+                    document.getElementById(`history-link-${currentChatId}`)?.classList.add("active");
+                }
+            }).catch(() => {});
     }
 
     function loadHistoryFromStorage() {
@@ -53,7 +89,7 @@ document.addEventListener("DOMContentLoaded", () => {
             li.appendChild(a);
 
             const renameBtn = document.createElement("button");
-            renameBtn.textContent = '✏️'; 
+            renameBtn.textContent = '✎';
             renameBtn.classList.add("rename-btn");
             renameBtn.title = "Rename Chat";
             renameBtn.addEventListener("click", (e) => {
@@ -114,6 +150,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         document.getElementById(`history-link-${chatId}`)?.classList.add("active");
         youtubePlayer.src = `https://www.youtube.com/embed/${chat.videoId}`;
+        showVideoInfo(chat.videoId);
 
         chatHistory.innerHTML = "";
         chat.messages.forEach(msg => {
@@ -133,11 +170,26 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById(`history-link-${currentChatId}`)?.classList.add("active");
         
         youtubePlayer.src = `https://www.youtube.com/embed/${videoId}`;
-        fetchTranscript(videoId, true); 
+        showVideoInfo(videoId);
+        fetchTranscript(videoId, true);
+    }
+
+    // Temporary animated status line; caller removes it when the step finishes
+    function status(text) {
+        addMessage("System", text);
+        const el = chatHistory.lastChild;
+        el.classList.add("thinking");
+        return el;
+    }
+
+    function showError(text) {
+        addMessage("System", text);
+        chatHistory.lastChild.classList.add("error");
     }
 
     async function fetchTranscript(vId, getSummary = false) {
-        addMessage("System", "Fetching transcript...");
+        transcriptLoader.classList.add("hidden");
+        const step = status("Reading the transcript");
         const apiKey = localStorage.getItem("apiKey") || "";
         const videoUrl = `https://www.youtube.com/watch?v=${vId}`;
 
@@ -148,12 +200,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 body: JSON.stringify({ url: videoUrl })
             });
             const data = await response.json();
+            step.remove();
 
             if (response.ok) {
                 currentTranscript = data.transcript;
-                transcriptLoader.classList.add("hidden");
-                addMessage("System", "✅ Transcript loaded.");
-                
                 if (getSummary) {
                     fetchInitialSummary(apiKey);
                 } else {
@@ -161,19 +211,18 @@ document.addEventListener("DOMContentLoaded", () => {
                     sendChatBtn.disabled = false;
                 }
             } else {
-                transcriptLoader.textContent = `Error: ${data.detail}`;
-                addMessage("System", `❌ ${data.detail}`);
+                showError(data.detail);
             }
         } catch (err) {
-            transcriptLoader.textContent = `Server error: ${err.message}`;
-            addMessage("System", `❌ Server error: ${err.message}`);
+            step.remove();
+            showError(`Couldn't reach the server: ${err.message}`);
         }
     }
 
     async function fetchInitialSummary(apiKey) {
         const userPrompt = localStorage.getItem("userPrompt") || "Summarize this video concisely.";
-        addMessage("System", "Generating initial summary...");
-        
+        const step = status("Writing your summary");
+
         try {
             const response = await fetch("/summarize", {
                 method: "POST",
@@ -181,15 +230,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 body: JSON.stringify({ apiKey, transcript: currentTranscript, prompt: userPrompt })
             });
             const data = await response.json();
+            step.remove();
 
             if (response.ok) {
                 addMessage("Summary", data.summary);
-                addMessage("System", "✅ You can now ask questions.");
             } else {
-                addMessage("System", `❌ ${data.detail}`);
+                showError(data.detail);
             }
         } catch (err) {
-            addMessage("System", `❌ Server error: ${err.message}`);
+            step.remove();
+            showError(`Couldn't reach the server: ${err.message}`);
         } finally {
             chatInput.disabled = false;
             sendChatBtn.disabled = false;
@@ -205,9 +255,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
         addMessage("You", question);
         chatInput.value = "";
+        autoGrow();
+        suggestions.classList.add("hidden");
         sendChatBtn.disabled = true;
         chatError.classList.add("hidden");
-        addMessage("System", "Thinking...");
+        const step = status("Thinking");
 
         try {
             const response = await fetch("/ask", {
@@ -216,17 +268,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 body: JSON.stringify({ apiKey, question, transcript: currentTranscript })
             });
             const data = await response.json();
-            
-            chatHistory.removeChild(chatHistory.lastChild); 
+            step.remove();
 
             if (response.ok) {
                 addMessage("Gemini", data.answer);
             } else {
-                addMessage("System", `❌ ${data.detail}`);
+                showError(data.detail);
             }
         } catch (err) {
-            chatHistory.removeChild(chatHistory.lastChild);
-            addMessage("System", `❌ Server Error: ${err.message}`);
+            step.remove();
+            showError(`Couldn't reach the server: ${err.message}`);
         } finally {
             sendChatBtn.disabled = false;
             chatInput.focus();
@@ -235,7 +286,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function toggleSidebar() {
-        mainContainer.classList.toggle("sidebar-collapsed");
+        // Wide screens: collapse in place. Narrow screens: slide-over drawer.
+        const narrow = window.matchMedia("(max-width: 1100px)").matches;
+        mainContainer.classList.toggle(narrow ? "sidebar-open" : "sidebar-collapsed");
     }
 
     function downloadChatAsPDF() {
@@ -275,7 +328,8 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.dataset.text = text;
 
         const label = document.createElement("strong");
-        label.textContent = `${sender}:`;
+        label.className = "msg-label";
+        label.textContent = sender === "Gemini" ? "Answer" : sender;
         const content = document.createElement("div");
         content.className = "message-content";
         if (sender === "Gemini" || sender === "Summary") {
@@ -286,7 +340,12 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         messageDiv.append(label, content);
         chatHistory.appendChild(messageDiv);
-        chatHistory.scrollTop = chatHistory.scrollHeight;
+        // Long AI answers: show their start, not their end
+        if (sender === "Summary" || sender === "Gemini") {
+            chatHistory.scrollTop = messageDiv.offsetTop - chatHistory.offsetTop - 12;
+        } else {
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
     }
 
     init();
