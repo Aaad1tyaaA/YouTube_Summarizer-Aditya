@@ -7,4 +7,6 @@
 .DS_Store
 *.log
 
-/static/*.gz
+/static/*.gz.venv/
+__pycache__/
+.pytest_cache/

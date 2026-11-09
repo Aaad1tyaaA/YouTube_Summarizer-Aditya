@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watch & Chat</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+    <script src="/static/watch.js" defer></script>
+</head>
+<body>
+    <header>
+        <button id="sidebar-toggle-btn" title="Toggle History">&#9776;</button>
+        <h1>🎬 YouTube TLDR (Python)</h1>
+        <a href="/" class="back-link">← New Video</a>
+    </header>
+    
+    <div class="main-container" id="main-container">
+        <aside id="history-sidebar">
+            <div class="sidebar-header">
+                <h2>Chat History</h2>
+            </div>
+            <ul id="history-list"></ul>
+        </aside>
+        
+        <main class="chat-container">
+            <div class="chat-header"> 
+                <h2>Chat about the video</h2>
+                <button id="download-pdf-btn" class="icon-btn" title="Download Chat as PDF">&#128190;</button>
+            </div>
+            <div id="chat-history" class="chat-history"></div>
+            <div id="transcript-loader" class="loader">Loading transcript...</div>
+            <div class="chat-input-area">
+                <textarea id="chat-input" placeholder="Ask a question..." rows="2" disabled></textarea>
+                <button id="send-chat-btn" disabled>Send</button>
+            </div>
+            <p id="chat-error" class="error-message hidden"></p>
+        </main>
+        
+        <aside class="video-container">
+             <iframe id="youtubePlayer" width="560" height="315" src="" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+        </aside>
+    </div>
+</body>
+</html>
