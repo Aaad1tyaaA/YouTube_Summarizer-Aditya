@@ -189,21 +189,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
     async function fetchTranscript(vId, getSummary = false) {
         transcriptLoader.classList.add("hidden");
-        const step = status("Reading the transcript");
         const apiKey = localStorage.getItem("apiKey") || "";
         const videoUrl = `https://www.youtube.com/watch?v=${vId}`;
+        const chat = chatHistoryStorage.find(c => c.id === currentChatId);
+        if (chat?.transcript) {  // cached: reopening a chat shouldn't hit YouTube or Gemini again
+            currentTranscript = chat.transcript;
+            chatInput.disabled = false;
+            sendChatBtn.disabled = false;
+            return;
+        }
+        const step = status("Reading the video");
+        const slow = setTimeout(() => {
+            step.querySelector(".message-content").textContent = "No captions reachable, so Gemini is watching the video. This takes up to a minute";
+        }, 6000);
 
         try {
             const response = await fetch("/get_transcript", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ url: videoUrl })
+                body: JSON.stringify({ url: videoUrl, apiKey })
             });
             const data = await response.json();
+            clearTimeout(slow);
             step.remove();
 
             if (response.ok) {
                 currentTranscript = data.transcript;
+                const fresh = chatHistoryStorage.find(c => c.id === currentChatId);  // array may have been reloaded meanwhile
+                if (fresh) {
+                    fresh.transcript = data.transcript;
+                    try { localStorage.setItem("chatHistory", JSON.stringify(chatHistoryStorage)); } catch {}  // quota: just skip caching
+                }
                 if (getSummary) {
                     fetchInitialSummary(apiKey);
                 } else {
@@ -214,6 +230,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 showError(data.detail);
             }
         } catch (err) {
+            clearTimeout(slow);
             step.remove();
             showError(`Couldn't reach the server: ${err.message}`);
         }

@@ -48,7 +48,7 @@ def test_missing_key_gives_clear_error(monkeypatch):
 
 
 def test_transcript_errors_pass_through():
-    with patch.object(app, "fetch_transcript", side_effect=HTTPException(404, "no captions")):
+    with patch.object(app, "fetch_transcript", side_effect=HTTPException(404, "no captions")),          patch.object(app, "video_notes", side_effect=HTTPException(502, "x")):
         r = client.post("/get_transcript", json={"url": f"https://youtu.be/{ID}"})
     assert r.status_code == 404 and r.json()["detail"] == "no captions"
 
@@ -65,7 +65,7 @@ def test_falls_back_when_main_model_overloaded(monkeypatch):
     calls = []
 
     class Models:
-        def generate_content(self, model, contents):
+        def generate_content(self, model, contents, config=None):
             calls.append(model)
             if model == app.MODEL:
                 raise errors.APIError(503, {"error": {"message": "high demand"}})
@@ -74,3 +74,26 @@ def test_falls_back_when_main_model_overloaded(monkeypatch):
     monkeypatch.setattr(app.genai, "Client", lambda api_key: type("C", (), {"models": Models()})())
     assert app.ask_gemini("k", "p") == "fallback answer"
     assert calls == [app.MODEL, app.FALLBACK_MODEL]
+
+
+def test_falls_back_to_gemini_watching_the_video():
+    blocked = HTTPException(502, "Couldn't reach YouTube: blocked")
+    with patch.object(app, "fetch_transcript", side_effect=blocked), \
+         patch.object(app, "video_notes", return_value="notes from video") as notes:
+        r = client.post("/get_transcript", json={"url": f"https://youtu.be/{ID}", "apiKey": "k"})
+    assert r.json() == {"transcript": "notes from video", "source": "video"}
+    notes.assert_called_once_with("k", ID)
+
+
+def test_shows_caption_error_when_fallback_also_fails():
+    with patch.object(app, "fetch_transcript", side_effect=HTTPException(404, "no captions")), \
+         patch.object(app, "video_notes", side_effect=HTTPException(502, "gemini failed")):
+        r = client.post("/get_transcript", json={"url": f"https://youtu.be/{ID}"})
+    assert r.status_code == 404 and r.json()["detail"] == "no captions"
+
+
+def test_key_problem_in_fallback_is_shown():
+    with patch.object(app, "fetch_transcript", side_effect=HTTPException(404, "no captions")), \
+         patch.object(app, "video_notes", side_effect=HTTPException(400, "Add a Gemini API key")):
+        r = client.post("/get_transcript", json={"url": f"https://youtu.be/{ID}"})
+    assert r.status_code == 400
