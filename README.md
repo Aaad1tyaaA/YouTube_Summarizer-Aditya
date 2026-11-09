@@ -1,10 +1,14 @@
-# YouTube TLDR
+# TL;DR — YouTube summariser
 
-Paste a YouTube link, get a structured summary, then ask follow-up questions about the video. Answers come only from the video's transcript.
+**Live: [you-tube-summarizer-adityaa.vercel.app](https://you-tube-summarizer-adityaa.vercel.app)**
 
-Built with FastAPI, `youtube-transcript-api` and Google Gemini, with a plain HTML/JS frontend.
+Paste a YouTube link, get a structured summary, then ask follow-up questions about the video. Answers come only from the video's content.
+
+Built with FastAPI, `youtube-transcript-api` and Google Gemini, with a plain HTML/JS frontend. Deployed on Vercel.
 
 ## Features
+
+- **Works without captions, and on cloud hosts:** YouTube blocks transcript requests from servers like Vercel's, and some videos have no captions. In both cases Gemini reads the public video directly and writes detailed notes, which then drive the summary and Q&A.
 
 - **Summaries** in headings and bullet points, with a custom prompt if you want one
 - **Chat with the video:** follow-up questions answered from the transcript only
