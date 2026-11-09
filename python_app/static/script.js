@@ -39,7 +39,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Recent videos, from chat history saved by the watch page
-    const history = JSON.parse(localStorage.getItem('chatHistory') || '[]').slice(0, 6);
+    const seen = new Set();
+    const history = JSON.parse(localStorage.getItem('chatHistory') || '[]')
+        .filter(chat => !seen.has(chat.videoId) && seen.add(chat.videoId))  // newest chat per video
+        .slice(0, 6);
     if (history.length) {
         const grid = document.getElementById('recent-grid');
         history.forEach(chat => {
@@ -51,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
             img.alt = '';
             img.loading = 'lazy';
             const title = document.createElement('span');
-            title.textContent = chat.title;
+            title.textContent = chat.title === 'New Chat' ? 'Untitled video' : chat.title;
             a.append(img, title);
             grid.appendChild(a);
         });

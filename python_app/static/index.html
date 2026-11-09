@@ -3,63 +3,54 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>YouTube TLDR</title>
+    <title>TL;DR — read any YouTube video</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/static/style.css?v=3" />
-    <script src="/static/script.js?v=2" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/static/style.css?v=4" />
+    <script src="/static/script.js?v=4" defer></script>
 </head>
 <body class="home">
-    <div class="glow" aria-hidden="true"></div>
-
     <nav class="topbar">
-        <a href="/" class="brand">
-            <span class="brand-mark"><svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M8 5.5v13l11-6.5z"/></svg></span>
-            YouTube <b>TLDR</b>
-        </a>
+        <a href="/" class="brand" aria-label="TL;DR home"><span class="brand-mark" aria-hidden="true"></span>TL;DR</a>
+        <span class="topbar-meta">Video → notes</span>
     </nav>
 
     <main class="hero">
-        <span class="eyebrow">Powered by Gemini</span>
-        <h1>Turn any YouTube video into <span class="grad">notes you can talk to</span></h1>
-        <p class="lead">Paste a link. Get a clean, structured summary in seconds, then ask follow-up questions answered straight from the transcript.</p>
+        <p class="kicker">No. 01 — A reading room for YouTube</p>
+        <h1>Watch less.<br><em>Understand more.</em></h1>
+        <p class="lead">Paste a link. You get the video as a clean, structured read, and you can question it like a source. Every answer comes from the transcript, nothing else.</p>
 
-        <form id="video-form" class="url-bar" autocomplete="off">
-            <svg class="url-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></svg>
-            <label for="url" class="sr-only">YouTube video URL</label>
-            <input type="text" id="url" placeholder="https://youtube.com/watch?v=…" autofocus />
-            <button id="processBtn" type="submit" class="btn-primary">
-                Summarise
-                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M13 6l6 6-6 6"/></svg>
-            </button>
+        <form id="video-form" class="url-field" autocomplete="off">
+            <label for="url" class="url-prefix">URL</label>
+            <input type="text" id="url" placeholder="youtube.com/watch?v=…" autofocus spellcheck="false" />
+            <button id="processBtn" type="submit" class="btn-primary">Read it <span aria-hidden="true">→</span></button>
         </form>
         <p id="error-message" class="form-error hidden" role="alert"></p>
 
         <details class="settings">
-            <summary>
-                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="10" cy="17" r="2" fill="none" stroke="currentColor" stroke-width="2"/></svg>
-                API key &amp; summary style
-            </summary>
+            <summary><span>Settings</span><span class="settings-hint">API key · summary style</span></summary>
             <div class="settings-body">
-                <label for="apiKey">Gemini API key</label>
-                <input type="password" id="apiKey" placeholder="Paste your Gemini API key" />
-                <p class="hint">Stored only in this browser. Get one free at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>.</p>
-
-                <label for="prompt">Summary instructions</label>
-                <textarea id="prompt" rows="5">You are an expert video summarizer specializing in creating structured, accurate overviews. Given a YouTube video transcript, extract and present the most crucial information in an article-style format. Prioritize fidelity to the original content, ensuring all significant points, arguments, and key details are faithfully represented. Organize the summary logically with clear, descriptive headings and/or concise bullet points. For maximum skim-readability, bold key terms, core concepts, and critical takeaways within the text. Eliminate advertisements, sponsorships, conversational filler, repeated phrases, and irrelevant tangents, but retain all essential content.</textarea>
+                <div class="field">
+                    <label for="apiKey">Gemini API key</label>
+                    <input type="password" id="apiKey" placeholder="Paste your key" />
+                    <p class="hint">Kept in this browser only. Free from <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>.</p>
+                </div>
+                <div class="field">
+                    <label for="prompt">Summary instructions</label>
+                    <textarea id="prompt" rows="6">You are an expert video summarizer specializing in creating structured, accurate overviews. Given a YouTube video transcript, extract and present the most crucial information in an article-style format. Prioritize fidelity to the original content, ensuring all significant points, arguments, and key details are faithfully represented. Organize the summary logically with clear, descriptive headings and/or concise bullet points. For maximum skim-readability, bold key terms, core concepts, and critical takeaways within the text. Eliminate advertisements, sponsorships, conversational filler, repeated phrases, and irrelevant tangents, but retain all essential content.</textarea>
+                </div>
             </div>
         </details>
 
-        <ul class="features">
-            <li><span>⚡</span> Structured summaries</li>
-            <li><span>💬</span> Ask follow-up questions</li>
-            <li><span>🌍</span> Any caption language</li>
-            <li><span>📄</span> Export to PDF</li>
-        </ul>
+        <ol class="steps">
+            <li><span class="step-n">01</span><b>Paste</b>Any video with captions, in any language.</li>
+            <li><span class="step-n">02</span><b>Read</b>A structured summary with the filler cut out.</li>
+            <li><span class="step-n">03</span><b>Ask</b>Follow-up questions, answered from the transcript.</li>
+        </ol>
 
         <section id="recent" class="recent hidden">
-            <h2>Recent videos</h2>
+            <div class="section-head"><h2>Recently read</h2><span class="rule"></span></div>
             <div id="recent-grid" class="recent-grid"></div>
         </section>
     </main>

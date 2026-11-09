@@ -64,7 +64,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (!info) return;
                 document.getElementById("video-title").textContent = info.title;
                 document.getElementById("video-channel").textContent = info.author_name;
-                document.title = `${info.title} · YouTube TLDR`;
+                document.title = `${info.title} · TL;DR`;
                 // Name the chat after the video instead of "New Chat"
                 const chat = chatHistoryStorage.find(c => c.id === currentChatId);
                 if (chat && (chat.title === "New Chat" || chat.title.endsWith("..."))) {
@@ -329,7 +329,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const label = document.createElement("strong");
         label.className = "msg-label";
-        label.textContent = sender === "Gemini" ? "Answer" : sender;
+        label.textContent = { Gemini: "Answer", You: "Question" }[sender] || sender;
         const content = document.createElement("div");
         content.className = "message-content";
         if (sender === "Gemini" || sender === "Summary") {
